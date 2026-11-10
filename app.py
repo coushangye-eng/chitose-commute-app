@@ -9,7 +9,7 @@ st.set_page_config(page_title="千歳科技大 通学ナビ", layout="wide")
 # ==========================================
 st.markdown("""
 <style>
-    /* 画面上部の無駄な余白を完全に削り、緑カードを最上部に直出し */
+    /* 画面上部の余白を削り、緑カードを最上部に直出し */
     .block-container {
         padding-top: 0.8rem !important;
         padding-bottom: 2rem !important;
@@ -112,7 +112,7 @@ st.markdown("""
         border-color: #047857 !important;
     }
     div[data-testid="stSelectbox"] select, div[data-testid="stSelectbox"] div[data-baseweb="select"] {
-        font-size: 17px !important;
+        font-size: 18px !important;
         font-weight: 700 !important;
         min-height: 44px !important;
     }
@@ -639,7 +639,7 @@ walk_time = st.sidebar.slider("苗穂駅〜自宅 徒歩時間（分）", min_va
 is_holiday = st.sidebar.checkbox("土日祝ダイヤを使用", value=False)
 
 # ==========================================
-# 8. 日本時間の現在時刻を取得（クラウド上のズレを解消）
+# 8. 日本時間の現在時刻を取得（クラウド上の時差を解消）
 # ==========================================
 jst = timezone(timedelta(hours=9))
 now_jst = datetime.now(jst)
@@ -653,7 +653,7 @@ now_m_str = f"{now_m_val:02d}"
 hero_container = st.container()
 
 # ==========================================
-# 10. メイン設定エリア（ダイヤル式 / 手入力の切替）
+# 10. メイン設定エリア（ダイヤル式固定）
 # ==========================================
 st.markdown('<div class="filter-box">', unsafe_allow_html=True)
 
@@ -665,27 +665,22 @@ search_mode = st.radio(
     horizontal=True
 )
 
-time_input_method = st.radio("時刻の指定方法", ["ダイヤル式（5分刻み）", "直接打ち込み（手入力）"], horizontal=True)
-
+# 5分刻みダイヤル式ピッカー（時 / 分）に固定
 hours_list = [f"{h:02d}" for h in range(0, 24)]
 minutes_list = [f"{m:02d}" for m in range(0, 60, 5)]
 
-if time_input_method == "ダイヤル式（5分刻み）":
-    # 5分刻みのドラムロール型ピッカー
-    tc1, tc2 = st.columns(2)
-    default_h_idx = hours_list.index(now_h_str) if now_h_str in hours_list else 8
-    default_m_idx = minutes_list.index(now_m_str) if now_m_str in minutes_list else 0
-    
-    with tc1:
-        sel_h = st.selectbox("時（時間）", hours_list, index=default_h_idx)
-    with tc2:
-        sel_m = st.selectbox("分（5分刻み）", minutes_list, index=default_m_idx)
-    base_time_str = f"{sel_h}:{sel_m}"
-else:
-    # 従来のキーボード直接入力
-    def_time_obj = datetime.strptime(f"{now_h_str}:{now_m_str}", "%H:%M").time()
-    typed_time = st.time_input("指定時刻", def_time_obj)
-    base_time_str = typed_time.strftime("%H:%M")
+default_h_idx = hours_list.index(now_h_str) if now_h_str in hours_list else 8
+default_m_idx = minutes_list.index(now_m_str) if now_m_str in minutes_list else 0
+
+time_label = "出発基準時刻（5分刻み）" if "現在時刻" in search_mode else "希望到着時刻（5分刻み）"
+st.caption(f"▼ {time_label}")
+
+tc1, tc2 = st.columns(2)
+with tc1:
+    sel_h = st.selectbox("時", hours_list, index=default_h_idx)
+with tc2:
+    sel_m = st.selectbox("分", minutes_list, index=default_m_idx)
+base_time_str = f"{sel_h}:{sel_m}"
 
 # 大学の棟選択
 b_label = "大学の棟（目的地）" if "登校" in direction else "大学の棟（出発地）"
