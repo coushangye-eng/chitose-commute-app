@@ -2,25 +2,26 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-st.set_page_config(page_title="千歳科技大 通学ナビ", page_icon="🎓", layout="wide")
+st.set_page_config(page_title="千歳科技大 通学ナビ", layout="wide")
 
 # ==========================================
-# 1. UIスタイル定義
+# 1. UIスタイル定義（イラスト排除・大きなボタンUI）
 # ==========================================
 st.markdown("""
 <style>
+    /* 緑色の案内カード（最上部に表示） */
     .hero-card {
         background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
         color: white;
-        border-radius: 16px;
-        padding: 22px;
-        margin: 16px 0;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 14px;
+        padding: 20px;
+        margin: 10px 0 20px 0;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+        border: 1px solid rgba(255,255,255,0.2);
     }
     .hero-badge-header {
         display: inline-block;
-        background: rgba(167, 243, 208, 0.2);
+        background: rgba(167, 243, 208, 0.25);
         color: #a7f3d0;
         font-size: 13px;
         font-weight: 700;
@@ -29,7 +30,7 @@ st.markdown("""
         margin-bottom: 8px;
     }
     .hero-time-val {
-        font-size: 44px;
+        font-size: 46px;
         font-weight: 900;
         line-height: 1;
         letter-spacing: -1px;
@@ -44,7 +45,7 @@ st.markdown("""
     .step-card {
         background: rgba(255, 255, 255, 0.12);
         border: 1px solid rgba(255, 255, 255, 0.25);
-        border-radius: 10px;
+        border-radius: 8px;
         padding: 8px 12px;
         display: flex;
         flex-direction: column;
@@ -64,20 +65,47 @@ st.markdown("""
     .step-sub {
         font-size: 11px;
         color: #e2e8f0;
-        opacity: 0.9;
     }
     .step-arrow {
         color: #a7f3d0;
         font-size: 16px;
         font-weight: 900;
     }
+
+    /* 設定エリアの大型ボタンスタイル（スマホ向け最適化） */
     .filter-box {
         background-color: #f8fafc;
-        border: 1px solid #e2e8f0;
+        border: 1px solid #cbd5e1;
         border-radius: 12px;
-        padding: 12px 16px;
-        margin-top: 8px;
-        margin-bottom: 8px;
+        padding: 16px;
+        margin-top: 12px;
+        margin-bottom: 16px;
+    }
+    div[data-testid="stRadio"] div[role="radiogroup"] {
+        gap: 8px;
+        display: flex;
+        flex-wrap: wrap;
+    }
+    div[data-testid="stRadio"] div[role="radiogroup"] > label {
+        font-size: 15px !important;
+        font-weight: 600 !important;
+        padding: 8px 14px !important;
+        background-color: #ffffff;
+        border: 2px solid #cbd5e1;
+        border-radius: 8px;
+        cursor: pointer;
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+    }
+    div[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked) {
+        background-color: #065f46 !important;
+        color: #ffffff !important;
+        border-color: #047857 !important;
+    }
+    input[type="time"] {
+        font-size: 18px !important;
+        height: 44px !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -85,7 +113,6 @@ st.markdown("""
 # ==========================================
 # 2. JRデータ定義（関数の前に確実に配置）
 # ==========================================
-# --- 苗穂発 札幌方面（普通） ---
 JR_NAEBO_SAPPORO = [
     "06:19", "06:36", "06:42", "06:59", "07:04", "07:13", "07:26", "07:34", 
     "07:39", "07:44", "07:51", "07:56", "07:59", "08:05", "08:09", "08:13", 
@@ -93,7 +120,6 @@ JR_NAEBO_SAPPORO = [
     "08:54", "09:09", "09:10", "09:24", "09:30", "09:40", "09:44", "09:58"
 ]
 
-# --- 苗穂発 新札幌方面（普通） ---
 JR_NAEBO_SHINSAPPORO = [
     {"dep": "06:38", "arr": "06:48"}, {"dep": "07:03", "arr": "07:13"},
     {"dep": "07:18", "arr": "07:28"}, {"dep": "07:54", "arr": "08:04"},
@@ -101,7 +127,6 @@ JR_NAEBO_SHINSAPPORO = [
     {"dep": "09:13", "arr": "09:23"}, {"dep": "09:40", "arr": "09:50"}
 ]
 
-# --- 快速エアポート（上り：登校用） ---
 JR_RAPID_UP = [
     {"dep_sap": "06:48", "dep_shin": "06:58", "arr_chi": "07:18", "arr_mchi": "07:22"},
     {"dep_sap": "07:00", "dep_shin": "07:09", "arr_chi": "07:29", "arr_mchi": "07:33"},
@@ -119,7 +144,6 @@ JR_RAPID_UP = [
     {"dep_sap": "09:50", "dep_shin": "10:00", "arr_chi": "10:20", "arr_mchi": "10:24"}
 ]
 
-# --- 快速エアポート（下り：下校用） ---
 JR_RAPID_DOWN = [
     {'dep_mchi': '08:08', 'dep_chi': '08:12', 'arr_kita': '08:24', 'arr_shin': '08:33', 'arr_shiro': '08:38', 'arr_sap': '08:42'},
     {'dep_mchi': '08:22', 'dep_chi': '08:26', 'arr_kita': '08:38', 'arr_shin': '08:49', 'arr_shiro': '08:54', 'arr_sap': '08:58'},
@@ -168,7 +192,6 @@ JR_RAPID_DOWN = [
     {'dep_mchi': '22:39', 'dep_chi': '22:43', 'arr_kita': '22:54', 'arr_shin': '22:59', 'arr_shiro': '23:04', 'arr_sap': '23:08'}
 ]
 
-# --- 札幌発 苗穂行き（下校用） ---
 JR_SAPPORO_TO_NAEBO = [
     "08:52", "09:10", "09:23", "09:37", "09:46", "10:06", "10:07", "10:26", "10:37", "10:45",
     "11:06", "11:11", "11:23", "11:37", "11:45", "12:08", "12:11", "12:27", "12:38", "12:43",
@@ -179,7 +202,6 @@ JR_SAPPORO_TO_NAEBO = [
     "21:04", "21:14", "21:15", "21:27", "21:34", "21:37", "21:47", "21:49", "22:02", "22:11", "22:25", "22:37", "22:47", "23:00", "23:05", "23:23", "23:34", "23:43"
 ]
 
-# --- 千歳線普通列車（千歳 ➜ 北広島 ➜ 新札幌 ➜ 白石 ➜ 苗穂） ---
 JR_CHITOSE_LOCALS = [
     {'dep_chi': '08:18', 'dep_kita': '08:35', 'dep_shin': '08:50', 'dep_shiro': '08:56', 'arr_naebo': '09:00'},
     {'dep_chi': '08:42', 'dep_kita': '08:59', 'dep_shin': '09:14', 'dep_shiro': '09:20', 'arr_naebo': '09:24'},
@@ -216,7 +238,6 @@ JR_CHITOSE_LOCALS = [
 # ==========================================
 # 3. バスデータ定義（平日・土日祝）
 # ==========================================
-# --- 往路バス（平日） ---
 BUS_GO_HEIJITSU = [
     {'dep_station': '千歳駅', 'dep_time': '06:29', 'arr_kenkyu': '06:53', 'arr_honbu': '06:54', 'line': '空18'},
     {'dep_station': '南千歳駅', 'dep_time': '06:40', 'arr_kenkyu': '06:53', 'arr_honbu': '06:54', 'line': '空18'},
@@ -261,7 +282,6 @@ BUS_GO_HEIJITSU = [
     {'dep_station': '南千歳駅', 'dep_time': '10:20', 'arr_kenkyu': '10:28', 'arr_honbu': '10:31', 'line': '南17'}
 ]
 
-# --- 往路バス（土日祝） ---
 BUS_GO_HOLIDAY = [
     {'dep_station': '千歳駅', 'dep_time': '06:29', 'arr_kenkyu': '06:53', 'arr_honbu': '06:54', 'line': '空18'},
     {'dep_station': '南千歳駅', 'dep_time': '06:40', 'arr_kenkyu': '06:53', 'arr_honbu': '06:54', 'line': '空18'},
@@ -277,7 +297,6 @@ BUS_GO_HOLIDAY = [
     {'dep_station': '千歳駅', 'dep_time': '09:50', 'arr_kenkyu': '10:14', 'arr_honbu': '10:15', 'line': '空17'}
 ]
 
-# --- 復路バス（平日） ---
 BUS_BACK_HEIJITSU = [
     {'line': '空17', 'dep_honbu': '08:22', 'dep_kenkyu': '08:25', 'bus_arr_sta': '千歳駅', 'bus_arr_time': '08:48', 'drop_detail': '千歳駅前（降車）'},
     {'line': '空17', 'dep_honbu': '08:22', 'dep_kenkyu': '08:25', 'bus_arr_sta': '南千歳駅', 'bus_arr_time': '08:37', 'drop_detail': '南千歳駅（降車）'},
@@ -346,7 +365,6 @@ BUS_BACK_HEIJITSU = [
     {'line': '空18', 'dep_honbu': '23:32', 'dep_kenkyu': '23:35', 'bus_arr_sta': '南千歳駅', 'bus_arr_time': '23:47', 'drop_detail': '南千歳駅（降車）'}
 ]
 
-# --- 復路バス（土日祝） ---
 BUS_BACK_HOLIDAY = [
     {'line': '空17', 'dep_honbu': '08:22', 'dep_kenkyu': '08:25', 'bus_arr_sta': '千歳駅', 'bus_arr_time': '08:48', 'drop_detail': '千歳駅前（降車）'},
     {'line': '空17', 'dep_honbu': '08:22', 'dep_kenkyu': '08:25', 'bus_arr_sta': '南千歳駅', 'bus_arr_time': '08:37', 'drop_detail': '南千歳駅（降車）'},
@@ -485,7 +503,7 @@ def calculate_go_routes(bus_data, dest_building, walk_time):
     return pd.DataFrame(routes)
 
 # ==========================================
-# 6. 復路（下校）計算（千歳駅乗車を最優先：pref_chitose=1）
+# 6. 復路（下校）計算（千歳駅乗車優先）
 # ==========================================
 def calculate_back_routes(bus_data, dep_building, walk_time):
     bus_df = pd.DataFrame(bus_data)
@@ -499,7 +517,7 @@ def calculate_back_routes(bus_data, dep_building, walk_time):
         bus_sta = b['bus_arr_sta']
         pref_chitose = 1 if bus_sta == '千歳駅' else 0
         
-        # パターンA：千歳駅から普通列車にそのまま乗車（直通・乗換なし）
+        # 千歳駅直通普通
         if bus_sta == '千歳駅':
             for loc in JR_CHITOSE_LOCALS:
                 loc_dep_m = t2m(loc['dep_chi'])
@@ -517,14 +535,14 @@ def calculate_back_routes(bus_data, dep_building, walk_time):
                     })
                     break
 
-        # パターンB：快速エアポートに乗車
+        # 快速エアポート接続
         for ap in JR_RAPID_DOWN:
             ap_dep_str = ap['dep_chi'] if bus_sta == '千歳駅' else ap['dep_mchi']
             if not ap_dep_str: continue
             ap_dep_m = t2m(ap_dep_str)
             
             if ap_dep_m >= b_arr_m + 3:
-                # 1. 北広島駅で普通に乗換
+                # 北広島乗換
                 kita_arr_m = t2m(ap['arr_kita'])
                 for loc in JR_CHITOSE_LOCALS:
                     loc_kita_m = t2m(loc['dep_kita'])
@@ -542,7 +560,7 @@ def calculate_back_routes(bus_data, dep_building, walk_time):
                         })
                         break
 
-                # 2. 新札幌駅で普通に乗換
+                # 新札幌乗換
                 shin_arr_m = t2m(ap['arr_shin'])
                 for loc in JR_CHITOSE_LOCALS:
                     loc_shin_m = t2m(loc['dep_shin'])
@@ -560,7 +578,7 @@ def calculate_back_routes(bus_data, dep_building, walk_time):
                         })
                         break
 
-                # 3. 白石駅で普通に乗換
+                # 白石乗換
                 shiro_arr_m = t2m(ap['arr_shiro'])
                 for loc in JR_CHITOSE_LOCALS:
                     loc_shiro_m = t2m(loc['dep_shiro'])
@@ -578,7 +596,7 @@ def calculate_back_routes(bus_data, dep_building, walk_time):
                         })
                         break
 
-                # 4. 札幌駅まで行って折り返す乗換
+                # 札幌乗換
                 sap_arr_m = t2m(ap['arr_sap'])
                 for s_dep in JR_SAPPORO_TO_NAEBO:
                     s_dep_m = t2m(s_dep)
@@ -600,57 +618,71 @@ def calculate_back_routes(bus_data, dep_building, walk_time):
     return pd.DataFrame(routes)
 
 # ==========================================
-# 7. メイン画面描画
+# 7. サイドバー設定（行き帰り・徒歩時間）
 # ==========================================
-st.title("🎓 千歳科技大 通学ナビ")
+st.sidebar.header("通学方向・基本設定")
+direction = st.sidebar.radio(
+    "移動方向",
+    ["登校（自宅 ➜ 大学）", "下校（大学 ➜ 自宅）"],
+    index=0
+)
+walk_time = st.sidebar.slider("苗穂駅〜自宅 徒歩時間（分）", min_value=10, max_value=25, value=16)
+is_holiday = st.sidebar.checkbox("土日祝ダイヤを使用", value=False)
 
-# 1行目：方向と検索モード
-row1_1, row1_2 = st.columns([1.2, 1.8])
-with row1_1:
-    direction = st.radio("通学方向", ["🏠 ➜ 🎓 登校（行き）", "🎓 ➜ 🏠 下校（帰り）"], horizontal=True)
-with row1_2:
-    search_mode = st.radio("検索モード", ["⏰ 現在時刻から最速（今すぐ出発）", "🎯 希望到着時刻から逆算（ギリギリ出発）"], horizontal=True)
+# ==========================================
+# 8. メイン画面：最上部に結果カード領域を確保
+# ==========================================
+st.title("千歳科技大 通学ナビ")
 
-# 2行目：基準時刻・建物・休日・徒歩
-c1, c2, c3, c4 = st.columns([1.2, 1.2, 1, 1.4])
+# 【重要】スマホを開いた瞬間に緑色の案内カードが出るよう最上部にコンテナを配置
+hero_container = st.container()
+
+# ==========================================
+# 9. メイン画面：条件設定エリア（大きなボタン）
+# ==========================================
+st.markdown('<div class="filter-box">', unsafe_allow_html=True)
+
+# 検索モード
+search_mode = st.radio(
+    "検索モード",
+    ["現在時刻から最速（今すぐ出発）", "希望到着時刻から逆算（ギリギリ出発）"],
+    horizontal=True
+)
+
+c1, c2 = st.columns([1.2, 1.2])
 with c1:
     now_str = datetime.now().strftime("%H:%M")
     if "現在時刻" in search_mode:
         base_time_val = st.time_input("出発基準時刻", datetime.strptime(now_str, "%H:%M").time())
-        st.caption(f"基準: {base_time_val.strftime('%H:%M')} 以降の最も早い到着を案内")
     else:
         def_t = "08:50" if "登校" in direction else "19:00"
         base_time_val = st.time_input("希望到着時刻", datetime.strptime(def_t, "%H:%M").time())
-        st.caption(f"基準: {base_time_val.strftime('%H:%M')} までに着く一番遅い出発を逆算")
-with c2:
-    b_label = "大学の目的地" if "登校" in direction else "大学の出発地"
-    target_building = st.radio(b_label, ["研究棟", "本部棟"], horizontal=True)
-with c3:
-    is_holiday = st.checkbox("土日祝ダイヤ", value=False)
-with c4:
-    walk_time = st.slider("苗穂駅〜家 徒歩(分)", 10, 25, 16)
 
-# 3行目：経由地点フィルター
-st.markdown('<div class="filter-box">', unsafe_allow_html=True)
-f1, f2 = st.columns(2)
+with c2:
+    b_label = "大学の棟（目的地）" if "登校" in direction else "大学の棟（出発地）"
+    target_building = st.radio(b_label, ["研究棟", "本部棟"], horizontal=True)
+
+# 経由地フィルター
+f1, f2 = st.columns([1.5, 1.2])
 with f1:
     if "登校" in direction:
-        filter_jr = st.radio("🔄 JR乗換駅の絞り込み", ["指定なし（最速）", "札幌駅経由", "新札幌駅経由"], horizontal=True)
+        filter_jr = st.radio("JR乗換駅", ["指定なし（最速）", "札幌駅経由", "新札幌駅経由"], horizontal=True)
     else:
         filter_jr = st.radio(
-            "🔄 JR乗換駅の絞り込み（下校）",
+            "JR乗換駅（下校）",
             ["指定なし（最速）", "札幌を経由しない（手前乗換）", "北広島駅経由", "新札幌駅経由", "白石駅経由", "千歳直通（乗換なし）", "札幌駅経由"],
             horizontal=True
         )
 with f2:
-    b_filter_label = "🚏 バス乗車駅" if "登校" in direction else "🚏 バス降車駅（JR乗車駅）"
+    b_filter_label = "バス乗車駅" if "登校" in direction else "バス降車駅（JR乗車駅）"
     filter_bus = st.radio(b_filter_label, ["指定なし（最速）", "千歳駅経由", "南千歳駅経由"], horizontal=True)
+
 st.markdown('</div>', unsafe_allow_html=True)
 
 base_m = t2m(base_time_val.strftime("%H:%M"))
 
 # ==========================================
-# A. 登校（行き）の描画処理
+# 10. ルート計算と最上部カード・全便一覧の描画
 # ==========================================
 if "登校" in direction:
     bus_data = BUS_GO_HOLIDAY if is_holiday else BUS_GO_HEIJITSU
@@ -680,7 +712,7 @@ if "登校" in direction:
                     by=["univ_arr_m", "home_dep_m", "pref_sapporo", "pref_mchitose"],
                     ascending=[True, False, False, False]
                 ).iloc[0]
-                status_header = f"⏰ {base_time_val.strftime('%H:%M')} 以降の出発で一番早く着く便"
+                status_header = f"{base_time_val.strftime('%H:%M')} 以降の出発で一番早く着く便"
         else:
             cands = filtered_df[filtered_df["univ_arr_m"] <= base_m]
             if not cands.empty:
@@ -688,46 +720,47 @@ if "登校" in direction:
                     by=["home_dep_m", "pref_sapporo", "pref_mchitose", "univ_arr_m"],
                     ascending=[False, False, False, True]
                 ).iloc[0]
-                status_header = f"🎯 {base_time_val.strftime('%H:%M')} までに着く一番ギリギリの出発便"
+                status_header = f"{base_time_val.strftime('%H:%M')} までに着く一番ギリギリの出発便"
 
-    if best is not None:
-        total_min = best['univ_arr_m'] - best['home_dep_m']
-        hero_html = f"""<div class="hero-card">
+    # 画面最上部に緑色カードを描画
+    with hero_container:
+        if best is not None:
+            total_min = best['univ_arr_m'] - best['home_dep_m']
+            hero_html = f"""<div class="hero-card">
 <div class="hero-badge-header">{status_header}</div>
 <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap;">
 <div>
-<span style="font-size:14px; opacity:0.85;">自宅を出る時間</span>
-<div class="hero-time-val">{best['home_dep']} <span style="font-size:22px; font-weight:normal;">発</span></div>
+<span style="font-size:13px; opacity:0.85;">自宅を出る時間</span>
+<div class="hero-time-val">{best['home_dep']} <span style="font-size:20px; font-weight:normal;">発</span></div>
 </div>
 <div style="text-align:right;">
-<span style="font-size:14px; opacity:0.85;">大学{target_building} 到着</span>
-<div style="font-size:32px; font-weight:800; color:#a7f3d0;">{best['univ_arr']} <span style="font-size:18px; font-weight:normal;">着</span></div>
-<div style="font-size:12px; opacity:0.85;">総所要時間: 約{total_min}分</div>
+<span style="font-size:13px; opacity:0.85;">大学{target_building} 到着</span>
+<div style="font-size:30px; font-weight:800; color:#a7f3d0;">{best['univ_arr']} <span style="font-size:16px; font-weight:normal;">着</span></div>
+<div style="font-size:12px; opacity:0.85;">所要時間: 約{total_min}分</div>
 </div>
 </div>
 <div class="transit-step-container">
-<div class="step-card"><div class="step-type">🚶 移動</div><div class="step-main">徒歩 {walk_time}分</div><div class="step-sub">自宅 ➜ 苗穂駅</div></div>
+<div class="step-card"><div class="step-type">徒歩</div><div class="step-main">{walk_time}分</div><div class="step-sub">自宅 ➜ 苗穂駅</div></div>
 <div class="step-arrow">➜</div>
-<div class="step-card"><div class="step-type">🚃 JR普通</div><div class="step-main">{best['naebo_dep']} 苗穂発</div><div class="step-sub">{best['transfer_sta']}乗換</div></div>
+<div class="step-card"><div class="step-type">JR普通</div><div class="step-main">{best['naebo_dep']} 苗穂発</div><div class="step-sub">{best['transfer_sta']}乗換</div></div>
 <div class="step-arrow">➜</div>
-<div class="step-card"><div class="step-type">⚡ 快速エアポート</div><div class="step-main">{best['rap_dep']} {best['transfer_sta']}発</div><div class="step-sub">{best['bus_sta']}下車</div></div>
+<div class="step-card"><div class="step-type">快速エアポート</div><div class="step-main">{best['rap_dep']} {best['transfer_sta']}発</div><div class="step-sub">{best['bus_sta']}下車</div></div>
 <div class="step-arrow">➜</div>
 <div class="step-card" style="background:rgba(16,185,129,0.25); border-color:#34d399;">
-<div class="step-type" style="color:#6ee7b7;">🚌 美々空港線 ({best['bus_line']})</div><div class="step-main">{best['bus_dep']} 発</div><div class="step-sub" style="color:#a7f3d0; font-weight:600;">📍 {best['bus_stop_detail']}</div></div>
+<div class="step-type" style="color:#6ee7b7;">バス（{best['bus_line']}）</div><div class="step-main">{best['bus_dep']} 発</div><div class="step-sub" style="color:#a7f3d0; font-weight:600;">{best['bus_stop_detail']}</div></div>
 </div>
 </div>"""
-        st.markdown(hero_html, unsafe_allow_html=True)
+            st.markdown(hero_html, unsafe_allow_html=True)
+        else:
+            st.error("指定された条件・時刻に合致する便がありません。時刻や経由地を調整してください。")
 
-        st.subheader("📋 接続可能な全便一覧（登校）")
+    # 全便一覧表
+    if not routes_df.empty:
+        st.subheader("全便一覧（登校）")
         view_df = routes_df[["home_dep", "naebo_dep", "transfer_sta", "rap_dep", "bus_stop_detail", "bus_dep", "bus_line", "univ_arr"]].copy()
-        view_df.columns = ["家出発", "苗穂発", "乗換駅", "快速発", "バス乗車場所（のりば）", "バス発", "系統", "大学着"]
+        view_df.columns = ["自宅発", "苗穂発", "JR乗換駅", "快速発", "バスのりば", "バス発", "系統", "大学着"]
         st.dataframe(view_df, hide_index=True, use_container_width=True)
-    else:
-        st.error("指定された条件・時刻に合致する接続便がありません。時刻や経由条件を調整してください。")
 
-# ==========================================
-# B. 下校（帰り）の描画処理（千歳駅乗車優先）
-# ==========================================
 else:
     bus_data = BUS_BACK_HOLIDAY if is_holiday else BUS_BACK_HEIJITSU
     df_all = calculate_back_routes(bus_data, target_building, walk_time)
@@ -766,7 +799,7 @@ else:
                     by=["home_arr_m", "univ_dep_m", "pref_chitose", "avoid_sapporo"],
                     ascending=[True, False, False, False]
                 ).iloc[0]
-                status_header = f"⏰ {base_time_val.strftime('%H:%M')} 以降の出発で一番早く帰れる便"
+                status_header = f"{base_time_val.strftime('%H:%M')} 以降の出発で一番早く帰れる便"
         else:
             cands = filtered_df[filtered_df["home_arr_m"] <= base_m]
             if not cands.empty:
@@ -774,43 +807,49 @@ else:
                     by=["univ_dep_m", "pref_chitose", "avoid_sapporo", "home_arr_m"],
                     ascending=[False, False, False, True]
                 ).iloc[0]
-                status_header = f"🎯 {base_time_val.strftime('%H:%M')} までに帰宅できる一番ギリギリの出発便"
+                status_header = f"{base_time_val.strftime('%H:%M')} までに帰宅できる一番ギリギリの出発便"
 
-    if best is not None:
-        total_min = best['home_arr_m'] - best['univ_dep_m']
-        
-        if best['transfer_sta'] == '直通（千歳より普通）':
-            jr_card_html = f"""<div class="step-card"><div class="step-type">🚃 JR普通（直通）</div><div class="step-main">{best['rap_dep']} 千歳発</div><div class="step-sub">苗穂まで乗換なし</div></div>"""
-        else:
-            jr_card_html = f"""<div class="step-card"><div class="step-type">⚡ 快速エアポート</div><div class="step-main">{best['rap_dep']} {best['bus_arr_sta']}発</div><div class="step-sub">{best['transfer_sta']}乗換</div></div>
+    # 画面最上部に緑色カードを描画
+    with hero_container:
+        if best is not None:
+            total_min = best['home_arr_m'] - best['univ_dep_m']
+            
+            if best['transfer_sta'] == '直通（千歳より普通）':
+                jr_card_html = f"""<div class="step-card"><div class="step-type">JR普通（直通）</div><div class="step-main">{best['rap_dep']} 千歳発</div><div class="step-sub">苗穂まで乗換なし</div></div>"""
+            else:
+                jr_card_html = f"""<div class="step-card"><div class="step-type">快速エアポート</div><div class="step-main">{best['rap_dep']} {best['bus_arr_sta']}発</div><div class="step-sub">{best['transfer_sta']}乗換</div></div>
 <div class="step-arrow">➜</div>
-<div class="step-card"><div class="step-type">🚃 JR普通</div><div class="step-main">{best['local_dep']} {best['transfer_sta']}発</div><div class="step-sub">{best['naebo_arr']} 苗穂着</div></div>"""
+<div class="step-card"><div class="step-type">JR普通</div><div class="step-main">{best['local_dep']} {best['transfer_sta']}発</div><div class="step-sub">{best['naebo_arr']} 苗穂着</div></div>"""
 
-        hero_html = f"""<div class="hero-card">
+            hero_html = f"""<div class="hero-card">
 <div class="hero-badge-header">{status_header}</div>
 <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap;">
 <div>
-<span style="font-size:14px; opacity:0.85;">大学{target_building}を出る時間</span>
-<div class="hero-time-val">{best['univ_dep']} <span style="font-size:22px; font-weight:normal;">発</span></div>
+<span style="font-size:13px; opacity:0.85;">大学{target_building}を出る時間</span>
+<div class="hero-time-val">{best['univ_dep']} <span style="font-size:20px; font-weight:normal;">発</span></div>
 </div>
 <div style="text-align:right;">
-<span style="font-size:14px; opacity:0.85;">自宅到着</span>
-<div style="font-size:32px; font-weight:800; color:#a7f3d0;">{best['home_arr']} <span style="font-size:18px; font-weight:normal;">着</span></div>
-<div style="font-size:12px; opacity:0.85;">総所要時間: 約{total_min}分</div>
+<span style="font-size:13px; opacity:0.85;">自宅到着</span>
+<div style="font-size:30px; font-weight:800; color:#a7f3d0;">{best['home_arr']} <span style="font-size:16px; font-weight:normal;">着</span></div>
+<div style="font-size:12px; opacity:0.85;">所要時間: 約{total_min}分</div>
 </div>
 </div>
 <div class="transit-step-container">
 <div class="step-card" style="background:rgba(16,185,129,0.25); border-color:#34d399;">
-<div class="step-type" style="color:#6ee7b7;">🚌 美々空港線 ({best['bus_line']})</div><div class="step-main">{best['univ_dep']} 発</div><div class="step-sub" style="color:#a7f3d0; font-weight:600;">➜ {best['drop_detail']}</div></div>
+<div class="step-type" style="color:#6ee7b7;">バス（{best['bus_line']}）</div><div class="step-main">{best['univ_dep']} 発</div><div class="step-sub" style="color:#a7f3d0; font-weight:600;">➜ {best['drop_detail']}</div></div>
 <div class="step-arrow">➜</div>
 {jr_card_html}
 <div class="step-arrow">➜</div>
-<div class="step-card"><div class="step-type">🚶 移動</div><div class="step-main">徒歩 {walk_time}分</div><div class="step-sub">苗穂駅 ➜ 自宅</div></div>
+<div class="step-card"><div class="step-type">徒歩</div><div class="step-main">{walk_time}分</div><div class="step-sub">苗穂駅 ➜ 自宅</div></div>
 </div>
 </div>"""
-        st.markdown(hero_html, unsafe_allow_html=True)
+            st.markdown(hero_html, unsafe_allow_html=True)
+        else:
+            st.error("指定された条件・時刻に合致する便がありません。時刻や経由地を調整してください。")
 
-        st.subheader("📋 接続可能な全便一覧（下校）")
+    # 全便一覧表
+    if not routes_df.empty:
+        st.subheader("全便一覧（下校）")
         view_df = routes_df[[
             "univ_dep", "bus_line", "drop_detail", "rap_dep", 
             "transfer_sta", "local_dep", "naebo_arr", "home_arr"
@@ -820,5 +859,3 @@ else:
             "乗換駅", "乗換後発", "苗穂着", "自宅着"
         ]
         st.dataframe(view_df, hide_index=True, use_container_width=True)
-    else:
-        st.error("指定された条件・時刻に合致する帰宅便がありません。時刻や経由条件を調整してください。")
