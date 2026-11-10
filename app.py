@@ -5,7 +5,7 @@ from datetime import datetime, timezone, timedelta
 st.set_page_config(page_title="千歳科技大 通学ナビ", layout="wide")
 
 # ==========================================
-# 1. UIスタイル定義（余白削減・タッチ最適化）
+# 1. UIスタイル定義（上部余白カット・大型タッチUI）
 # ==========================================
 st.markdown("""
 <style>
@@ -122,10 +122,11 @@ st.markdown("""
         font-size: 13px !important;
         font-weight: 700 !important;
         border-radius: 8px !important;
-        min-height: 40px !important;
+        min-height: 42px !important;
         border: 1.5px solid #065f46 !important;
         color: #065f46 !important;
         background-color: #ffffff !important;
+        margin-bottom: 4px;
     }
     div[data-testid="stButton"] button:hover {
         background-color: #065f46 !important;
@@ -662,10 +663,10 @@ now_h_str = f"{now_jst.hour:02d}"
 now_m_val = (now_jst.minute // 5) * 5
 now_m_str = f"{now_m_val:02d}"
 
-# 方向の切り替えを検知してデフォルト値を自動初期化
 if "current_direction" not in st.session_state:
     st.session_state.current_direction = direction
 
+# 移動方向の切り替え時にデフォルト初期化
 if st.session_state.current_direction != direction:
     st.session_state.current_direction = direction
     if "登校" in direction:
@@ -694,7 +695,7 @@ hero_container = st.container()
 # ==========================================
 st.markdown('<div class="filter-box">', unsafe_allow_html=True)
 
-# 検索モード（登校側は逆算モード[index=1]をデフォルト、下校側は最速モード[index=0]をデフォルト）
+# 検索モード（登校側は逆算モード[index=1]、下校側は最速モード[index=0]をデフォルト）
 default_search_idx = 1 if "登校" in direction else 0
 search_mode = st.radio(
     "検索モード",
@@ -704,24 +705,41 @@ search_mode = st.radio(
     key=f"search_mode_{direction}"
 )
 
-# 登校時：時限クイック選択ボタン（ワンタップ設定）
+# 時限クイック選択ボタン
 if "登校" in direction:
     st.caption("▼ 時限クイック選択（ワンタップで希望到着時刻を設定）")
+    q1, q2, q3, q4 = st.columns(4)
+    with q1:
+        st.button("1限 (08:50)", on_click=set_quick_time, args=("08", "50"), use_container_width=True)
+    with q2:
+        st.button("2限 (10:35)", on_click=set_quick_time, args=("10", "35"), use_container_width=True)
+    with q3:
+        st.button("昼休み (12:15)", on_click=set_quick_time, args=("12", "15"), use_container_width=True)
+    with q4:
+        st.button("3限 (13:05)", on_click=set_quick_time, args=("13", "05"), use_container_width=True)
+
+    q5, q6, q7 = st.columns(3)
+    with q5:
+        st.button("4限 (14:50)", on_click=set_quick_time, args=("14", "50"), use_container_width=True)
+    with q6:
+        st.button("5限 (16:35)", on_click=set_quick_time, args=("16", "35"), use_container_width=True)
+    with q7:
+        st.button("放課後 (18:15)", on_click=set_quick_time, args=("18", "15"), use_container_width=True)
+else:
+    st.caption("▼ 講義終了クイック選択（ワンタップで大学出発時刻を設定）")
     q1, q2, q3 = st.columns(3)
     with q1:
-        st.button("1限 (08:50着)", on_click=set_quick_time, args=("08", "50"), use_container_width=True)
+        st.button("1限後 (10:30)", on_click=set_quick_time, args=("10", "30"), use_container_width=True)
     with q2:
-        st.button("2限 (10:30着)", on_click=set_quick_time, args=("10", "30"), use_container_width=True)
+        st.button("2限後/昼休み (12:15)", on_click=set_quick_time, args=("12", "15"), use_container_width=True)
     with q3:
-        st.button("3限 (12:50着)", on_click=set_quick_time, args=("12", "50"), use_container_width=True)
+        st.button("3限後 (14:45)", on_click=set_quick_time, args=("14", "45"), use_container_width=True)
 
-    q4, q5, q6 = st.columns(3)
+    q4, q5 = st.columns(2)
     with q4:
-        st.button("4限 (14:30着)", on_click=set_quick_time, args=("14", "30"), use_container_width=True)
+        st.button("4限後 (16:30)", on_click=set_quick_time, args=("16", "30"), use_container_width=True)
     with q5:
-        st.button("5限 (16:10着)", on_click=set_quick_time, args=("16", "10"), use_container_width=True)
-    with q6:
-        st.button("放課後 (18:00着)", on_click=set_quick_time, args=("18", "00"), use_container_width=True)
+        st.button("5限後/放課後 (18:15)", on_click=set_quick_time, args=("18", "15"), use_container_width=True)
 
 # 5分刻みダイヤル式ピッカー
 hours_list = [f"{h:02d}" for h in range(0, 24)]
