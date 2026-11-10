@@ -5,7 +5,7 @@ from datetime import datetime, timezone, timedelta
 st.set_page_config(page_title="千歳科技大 通学ナビ", layout="wide")
 
 # ==========================================
-# 1. UIスタイル定義（上部余白カット・大きなタッチUI）
+# 1. UIスタイル定義（余白削減・タッチ最適化）
 # ==========================================
 st.markdown("""
 <style>
@@ -80,7 +80,7 @@ st.markdown("""
         font-weight: 900;
     }
 
-    /* 設定エリアの大型ボタンスタイル */
+    /* 設定エリア */
     .filter-box {
         background-color: #f8fafc;
         border: 1px solid #cbd5e1;
@@ -115,6 +115,21 @@ st.markdown("""
         font-size: 18px !important;
         font-weight: 700 !important;
         min-height: 44px !important;
+    }
+    
+    /* 時限クイックボタン */
+    div[data-testid="stButton"] button {
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        border-radius: 8px !important;
+        min-height: 40px !important;
+        border: 1.5px solid #065f46 !important;
+        color: #065f46 !important;
+        background-color: #ffffff !important;
+    }
+    div[data-testid="stButton"] button:hover {
+        background-color: #065f46 !important;
+        color: #ffffff !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -639,7 +654,7 @@ walk_time = st.sidebar.slider("苗穂駅〜自宅 徒歩時間（分）", min_va
 is_holiday = st.sidebar.checkbox("土日祝ダイヤを使用", value=False)
 
 # ==========================================
-# 8. 日本時間の現在時刻を取得（クラウド上の時差を解消）
+# 8. 日本時間の現在時刻とセッション管理
 # ==========================================
 jst = timezone(timedelta(hours=9))
 now_jst = datetime.now(jst)
@@ -647,39 +662,79 @@ now_h_str = f"{now_jst.hour:02d}"
 now_m_val = (now_jst.minute // 5) * 5
 now_m_str = f"{now_m_val:02d}"
 
+# 方向の切り替えを検知してデフォルト値を自動初期化
+if "current_direction" not in st.session_state:
+    st.session_state.current_direction = direction
+
+if st.session_state.current_direction != direction:
+    st.session_state.current_direction = direction
+    if "登校" in direction:
+        st.session_state.sel_h = "08"
+        st.session_state.sel_m = "50"
+    else:
+        st.session_state.sel_h = now_h_str
+        st.session_state.sel_m = now_m_str
+
+if "sel_h" not in st.session_state:
+    st.session_state.sel_h = "08" if "登校" in direction else now_h_str
+if "sel_m" not in st.session_state:
+    st.session_state.sel_m = "50" if "登校" in direction else now_m_str
+
+def set_quick_time(h, m):
+    st.session_state.sel_h = h
+    st.session_state.sel_m = m
+
 # ==========================================
 # 9. 最上部コンテナ（緑色カードを即時表示）
 # ==========================================
 hero_container = st.container()
 
 # ==========================================
-# 10. メイン設定エリア（ダイヤル式固定）
+# 10. メイン設定エリア
 # ==========================================
 st.markdown('<div class="filter-box">', unsafe_allow_html=True)
 
-# 検索モード（デフォルト：現在時刻から最速）
+# 検索モード（登校側は逆算モード[index=1]をデフォルト、下校側は最速モード[index=0]をデフォルト）
+default_search_idx = 1 if "登校" in direction else 0
 search_mode = st.radio(
     "検索モード",
     ["現在時刻から最速（今すぐ出発）", "希望到着時刻から逆算（ギリギリ出発）"],
-    index=0,
-    horizontal=True
+    index=default_search_idx,
+    horizontal=True,
+    key=f"search_mode_{direction}"
 )
 
-# 5分刻みダイヤル式ピッカー（時 / 分）に固定
+# 登校時：時限クイック選択ボタン（ワンタップ設定）
+if "登校" in direction:
+    st.caption("▼ 時限クイック選択（ワンタップで希望到着時刻を設定）")
+    q1, q2, q3 = st.columns(3)
+    with q1:
+        st.button("1限 (08:50着)", on_click=set_quick_time, args=("08", "50"), use_container_width=True)
+    with q2:
+        st.button("2限 (10:30着)", on_click=set_quick_time, args=("10", "30"), use_container_width=True)
+    with q3:
+        st.button("3限 (12:50着)", on_click=set_quick_time, args=("12", "50"), use_container_width=True)
+
+    q4, q5, q6 = st.columns(3)
+    with q4:
+        st.button("4限 (14:30着)", on_click=set_quick_time, args=("14", "30"), use_container_width=True)
+    with q5:
+        st.button("5限 (16:10着)", on_click=set_quick_time, args=("16", "10"), use_container_width=True)
+    with q6:
+        st.button("放課後 (18:00着)", on_click=set_quick_time, args=("18", "00"), use_container_width=True)
+
+# 5分刻みダイヤル式ピッカー
 hours_list = [f"{h:02d}" for h in range(0, 24)]
 minutes_list = [f"{m:02d}" for m in range(0, 60, 5)]
 
-default_h_idx = hours_list.index(now_h_str) if now_h_str in hours_list else 8
-default_m_idx = minutes_list.index(now_m_str) if now_m_str in minutes_list else 0
-
-time_label = "出発基準時刻（5分刻み）" if "現在時刻" in search_mode else "希望到着時刻（5分刻み）"
+time_label = "希望到着時刻（5分刻み）" if "希望到着時刻" in search_mode else "出発基準時刻（5分刻み）"
 st.caption(f"▼ {time_label}")
 
 tc1, tc2 = st.columns(2)
 with tc1:
-    sel_h = st.selectbox("時", hours_list, index=default_h_idx)
+    sel_h = st.selectbox("時", hours_list, key="sel_h")
 with tc2:
-    sel_m = st.selectbox("分", minutes_list, index=default_m_idx)
+    sel_m = st.selectbox("分", minutes_list, key="sel_m")
 base_time_str = f"{sel_h}:{sel_m}"
 
 # 大学の棟選択
