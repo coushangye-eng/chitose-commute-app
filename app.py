@@ -5,7 +5,7 @@ from datetime import datetime, timezone, timedelta
 st.set_page_config(page_title="千歳科技大 通学ナビ", layout="wide")
 
 # ==========================================
-# 1. UIスタイル定義（上部余白カット・大型タッチUI）
+# 1. UIスタイル定義（余白削減・大型タッチUI）
 # ==========================================
 st.markdown("""
 <style>
@@ -136,22 +136,44 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. JRデータ定義
+# 2. JRデータ定義（終日網羅：朝〜夜）
 # ==========================================
+# --- 苗穂発 札幌方面（普通：朝〜夜） ---
 JR_NAEBO_SAPPORO = [
     "06:19", "06:36", "06:42", "06:59", "07:04", "07:13", "07:26", "07:34", 
     "07:39", "07:44", "07:51", "07:56", "07:59", "08:05", "08:09", "08:13", 
     "08:16", "08:19", "08:26", "08:27", "08:32", "08:35", "08:40", "08:48", 
-    "08:54", "09:09", "09:10", "09:24", "09:30", "09:40", "09:44", "09:58"
+    "08:54", "09:09", "09:10", "09:24", "09:30", "09:40", "09:44", "09:58",
+    "10:02", "10:11", "10:28", "10:45", "10:57",
+    "11:01", "11:12", "11:14", "11:37", "11:46", "11:59",
+    "12:14", "12:18", "12:39", "12:47", "12:54",
+    "13:13", "13:16", "13:35", "13:42", "13:53",
+    "14:13", "14:16", "14:37", "14:57",
+    "15:16", "15:27", "15:38", "15:42", "15:59",
+    "16:15", "16:16", "16:35", "16:44", "16:48", "16:58",
+    "17:05", "17:15", "17:28", "17:38", "17:45", "17:51", "17:58",
+    "18:07", "18:11", "18:17", "18:29", "18:36", "18:42", "18:52", "18:59",
+    "19:01", "19:12", "19:19", "19:35", "19:38", "19:48", "19:55"
 ]
 
+# --- 苗穂発 新札幌方面（普通：朝〜夜） ---
 JR_NAEBO_SHINSAPPORO = [
     {"dep": "06:38", "arr": "06:48"}, {"dep": "07:03", "arr": "07:13"},
     {"dep": "07:18", "arr": "07:28"}, {"dep": "07:54", "arr": "08:04"},
     {"dep": "08:14", "arr": "08:24"}, {"dep": "08:29", "arr": "08:39"},
-    {"dep": "09:13", "arr": "09:23"}, {"dep": "09:40", "arr": "09:50"}
+    {"dep": "09:13", "arr": "09:23"}, {"dep": "09:40", "arr": "09:50"},
+    {"dep": "10:09", "arr": "10:19"}, {"dep": "10:40", "arr": "10:50"},
+    {"dep": "11:14", "arr": "11:24"}, {"dep": "11:40", "arr": "11:50"},
+    {"dep": "12:14", "arr": "12:24"}, {"dep": "12:41", "arr": "12:51"},
+    {"dep": "13:13", "arr": "13:23"}, {"dep": "13:40", "arr": "13:50"},
+    {"dep": "14:13", "arr": "14:23"}, {"dep": "14:40", "arr": "14:50"},
+    {"dep": "15:11", "arr": "15:21"}, {"dep": "15:39", "arr": "15:49"},
+    {"dep": "16:18", "arr": "16:28"}, {"dep": "16:45", "arr": "16:55"},
+    {"dep": "17:06", "arr": "17:16"}, {"dep": "17:17", "arr": "17:27"}, {"dep": "17:42", "arr": "17:52"},
+    {"dep": "18:05", "arr": "18:15"}, {"dep": "18:29", "arr": "18:39"}, {"dep": "18:56", "arr": "19:06"}
 ]
 
+# --- 快速エアポート（上り：朝〜夜間終日網羅） ---
 JR_RAPID_UP = [
     {"dep_sap": "06:48", "dep_shin": "06:58", "arr_chi": "07:18", "arr_mchi": "07:22"},
     {"dep_sap": "07:00", "dep_shin": "07:09", "arr_chi": "07:29", "arr_mchi": "07:33"},
@@ -166,9 +188,48 @@ JR_RAPID_UP = [
     {"dep_sap": "09:05", "dep_shin": "09:15", "arr_chi": "09:35", "arr_mchi": "09:39"},
     {"dep_sap": "09:20", "dep_shin": "09:30", "arr_chi": "09:50", "arr_mchi": "09:54"},
     {"dep_sap": "09:35", "dep_shin": "09:45", "arr_chi": "10:05", "arr_mchi": "10:09"},
-    {"dep_sap": "09:50", "dep_shin": "10:00", "arr_chi": "10:20", "arr_mchi": "10:24"}
+    {"dep_sap": "09:50", "dep_shin": "10:00", "arr_chi": "10:20", "arr_mchi": "10:24"},
+    {"dep_sap": "10:05", "dep_shin": "10:15", "arr_chi": "10:35", "arr_mchi": "10:39"},
+    {"dep_sap": "10:20", "dep_shin": "10:30", "arr_chi": "10:50", "arr_mchi": "10:54"},
+    {"dep_sap": "10:35", "dep_shin": "10:45", "arr_chi": "11:05", "arr_mchi": "11:09"},
+    {"dep_sap": "10:50", "dep_shin": "11:00", "arr_chi": "11:20", "arr_mchi": "11:24"},
+    {"dep_sap": "11:05", "dep_shin": "11:15", "arr_chi": "11:35", "arr_mchi": "11:39"},
+    {"dep_sap": "11:20", "dep_shin": "11:30", "arr_chi": "11:50", "arr_mchi": "11:54"},
+    {"dep_sap": "11:35", "dep_shin": "11:45", "arr_chi": "12:05", "arr_mchi": "12:09"},
+    {"dep_sap": "11:50", "dep_shin": "12:00", "arr_chi": "12:20", "arr_mchi": "12:24"},
+    {"dep_sap": "12:05", "dep_shin": "12:15", "arr_chi": "12:35", "arr_mchi": "12:39"},
+    {"dep_sap": "12:20", "dep_shin": "12:30", "arr_chi": "12:50", "arr_mchi": "12:54"},
+    {"dep_sap": "12:35", "dep_shin": "12:45", "arr_chi": "13:05", "arr_mchi": "13:09"},
+    {"dep_sap": "12:50", "dep_shin": "13:00", "arr_chi": "13:20", "arr_mchi": "13:24"},
+    {"dep_sap": "13:05", "dep_shin": "13:15", "arr_chi": "13:35", "arr_mchi": "13:39"},
+    {"dep_sap": "13:20", "dep_shin": "13:30", "arr_chi": "13:50", "arr_mchi": "13:54"},
+    {"dep_sap": "13:35", "dep_shin": "13:45", "arr_chi": "14:05", "arr_mchi": "14:09"},
+    {"dep_sap": "13:50", "dep_shin": "14:00", "arr_chi": "14:20", "arr_mchi": "14:24"},
+    {"dep_sap": "14:05", "dep_shin": "14:15", "arr_chi": "14:35", "arr_mchi": "14:39"},
+    {"dep_sap": "14:20", "dep_shin": "14:30", "arr_chi": "14:50", "arr_mchi": "14:54"},
+    {"dep_sap": "14:35", "dep_shin": "14:45", "arr_chi": "15:05", "arr_mchi": "15:09"},
+    {"dep_sap": "14:50", "dep_shin": "15:00", "arr_chi": "15:20", "arr_mchi": "15:24"},
+    {"dep_sap": "15:05", "dep_shin": "15:15", "arr_chi": "15:35", "arr_mchi": "15:39"},
+    {"dep_sap": "15:20", "dep_shin": "15:30", "arr_chi": "15:50", "arr_mchi": "15:54"},
+    {"dep_sap": "15:35", "dep_shin": "15:45", "arr_chi": "16:05", "arr_mchi": "16:09"},
+    {"dep_sap": "15:50", "dep_shin": "16:00", "arr_chi": "16:20", "arr_mchi": "16:24"},
+    {"dep_sap": "16:05", "dep_shin": "16:15", "arr_chi": "16:35", "arr_mchi": "16:39"},
+    {"dep_sap": "16:20", "dep_shin": "16:30", "arr_chi": "16:50", "arr_mchi": "16:54"},
+    {"dep_sap": "16:35", "dep_shin": "16:45", "arr_chi": "17:05", "arr_mchi": "17:09"},
+    {"dep_sap": "16:50", "dep_shin": "17:00", "arr_chi": "17:20", "arr_mchi": "17:24"},
+    {"dep_sap": "17:05", "dep_shin": "17:15", "arr_chi": "17:35", "arr_mchi": "17:39"},
+    {"dep_sap": "17:20", "dep_shin": "17:30", "arr_chi": "17:50", "arr_mchi": "17:54"},
+    {"dep_sap": "17:35", "dep_shin": "17:45", "arr_chi": "18:05", "arr_mchi": "18:09"},
+    {"dep_sap": "17:50", "dep_shin": "18:00", "arr_chi": "18:20", "arr_mchi": "18:24"},
+    {"dep_sap": "18:05", "dep_shin": "18:15", "arr_chi": "18:35", "arr_mchi": "18:39"},
+    {"dep_sap": "18:20", "dep_shin": "18:30", "arr_chi": "18:50", "arr_mchi": "18:54"},
+    {"dep_sap": "18:35", "dep_shin": "18:45", "arr_chi": "19:05", "arr_mchi": "19:09"},
+    {"dep_sap": "18:50", "dep_shin": "19:00", "arr_chi": "19:20", "arr_mchi": "19:24"},
+    {"dep_sap": "19:05", "dep_shin": "19:15", "arr_chi": "19:35", "arr_mchi": "19:39"},
+    {"dep_sap": "19:20", "dep_shin": "19:30", "arr_chi": "19:50", "arr_mchi": "19:54"}
 ]
 
+# --- 快速エアポート（下り：下校用） ---
 JR_RAPID_DOWN = [
     {'dep_mchi': '08:08', 'dep_chi': '08:12', 'arr_kita': '08:24', 'arr_shin': '08:33', 'arr_shiro': '08:38', 'arr_sap': '08:42'},
     {'dep_mchi': '08:22', 'dep_chi': '08:26', 'arr_kita': '08:38', 'arr_shin': '08:49', 'arr_shiro': '08:54', 'arr_sap': '08:58'},
@@ -217,6 +278,7 @@ JR_RAPID_DOWN = [
     {'dep_mchi': '22:39', 'dep_chi': '22:43', 'arr_kita': '22:54', 'arr_shin': '22:59', 'arr_shiro': '23:04', 'arr_sap': '23:08'}
 ]
 
+# --- 札幌発 苗穂行き（下校用） ---
 JR_SAPPORO_TO_NAEBO = [
     "08:52", "09:10", "09:23", "09:37", "09:46", "10:06", "10:07", "10:26", "10:37", "10:45",
     "11:06", "11:11", "11:23", "11:37", "11:45", "12:08", "12:11", "12:27", "12:38", "12:43",
@@ -227,6 +289,7 @@ JR_SAPPORO_TO_NAEBO = [
     "21:04", "21:14", "21:15", "21:27", "21:34", "21:37", "21:47", "21:49", "22:02", "22:11", "22:25", "22:37", "22:47", "23:00", "23:05", "23:23", "23:34", "23:43"
 ]
 
+# --- 千歳線普通列車（千歳 ➜ 北広島 ➜ 新札幌 ➜ 白石 ➜ 苗穂） ---
 JR_CHITOSE_LOCALS = [
     {'dep_chi': '08:18', 'dep_kita': '08:35', 'dep_shin': '08:50', 'dep_shiro': '08:56', 'arr_naebo': '09:00'},
     {'dep_chi': '08:42', 'dep_kita': '08:59', 'dep_shin': '09:14', 'dep_shiro': '09:20', 'arr_naebo': '09:24'},
@@ -261,7 +324,7 @@ JR_CHITOSE_LOCALS = [
 ]
 
 # ==========================================
-# 3. バスデータ定義（平日・土日祝）
+# 3. 往路バスデータ（全68便/29便：夜間19:54着まで完全網羅）
 # ==========================================
 BUS_GO_HEIJITSU = [
     {'dep_station': '千歳駅', 'dep_time': '06:29', 'arr_kenkyu': '06:53', 'arr_honbu': '06:54', 'line': '空18'},
@@ -304,7 +367,34 @@ BUS_GO_HEIJITSU = [
     {'dep_station': '千歳駅', 'dep_time': '10:04', 'arr_kenkyu': '10:22', 'arr_honbu': '10:25', 'line': '直17'},
     {'dep_station': '南千歳駅', 'dep_time': '10:05', 'arr_kenkyu': '10:13', 'arr_honbu': '10:16', 'line': '南17'},
     {'dep_station': '千歳駅', 'dep_time': '10:14', 'arr_kenkyu': '10:32', 'arr_honbu': '10:35', 'line': '直17'},
-    {'dep_station': '南千歳駅', 'dep_time': '10:20', 'arr_kenkyu': '10:28', 'arr_honbu': '10:31', 'line': '南17'}
+    {'dep_station': '南千歳駅', 'dep_time': '10:20', 'arr_kenkyu': '10:28', 'arr_honbu': '10:31', 'line': '南17'},
+    {'dep_station': '千歳駅', 'dep_time': '10:45', 'arr_kenkyu': '11:09', 'arr_honbu': '11:10', 'line': '空17'},
+    {'dep_station': '南千歳駅', 'dep_time': '10:56', 'arr_kenkyu': '11:09', 'arr_honbu': '11:10', 'line': '空17'},
+    {'dep_station': '千歳駅', 'dep_time': '11:00', 'arr_kenkyu': '11:24', 'arr_honbu': '11:25', 'line': '空17'},
+    {'dep_station': '南千歳駅', 'dep_time': '11:11', 'arr_kenkyu': '11:24', 'arr_honbu': '11:25', 'line': '空17'},
+    {'dep_station': '千歳駅', 'dep_time': '11:29', 'arr_kenkyu': '11:53', 'arr_honbu': '11:54', 'line': '空18'},
+    {'dep_station': '南千歳駅', 'dep_time': '11:40', 'arr_kenkyu': '11:53', 'arr_honbu': '11:54', 'line': '空18'},
+    {'dep_station': '千歳駅', 'dep_time': '11:50', 'arr_kenkyu': '12:14', 'arr_honbu': '12:15', 'line': '空17'},
+    {'dep_station': '南千歳駅', 'dep_time': '12:01', 'arr_kenkyu': '12:14', 'arr_honbu': '12:15', 'line': '空17'},
+    {'dep_station': '千歳駅', 'dep_time': '12:19', 'arr_kenkyu': '12:43', 'arr_honbu': '12:44', 'line': '空18'},
+    {'dep_station': '南千歳駅', 'dep_time': '12:30', 'arr_kenkyu': '12:43', 'arr_honbu': '12:44', 'line': '空18'},
+    {'dep_station': '千歳駅', 'dep_time': '12:10', 'arr_kenkyu': '12:34', 'arr_honbu': '12:35', 'line': '空17'},
+    {'dep_station': '南千歳駅', 'dep_time': '12:21', 'arr_kenkyu': '12:34', 'arr_honbu': '12:35', 'line': '空17'},
+    {'dep_station': '千歳駅', 'dep_time': '12:40', 'arr_kenkyu': '13:04', 'arr_honbu': '13:05', 'line': '空17'},
+    {'dep_station': '南千歳駅', 'dep_time': '12:51', 'arr_kenkyu': '13:04', 'arr_honbu': '13:05', 'line': '空17'},
+    {'dep_station': '千歳駅', 'dep_time': '13:20', 'arr_kenkyu': '13:44', 'arr_honbu': '13:45', 'line': '空17'},
+    {'dep_station': '南千歳駅', 'dep_time': '13:31', 'arr_kenkyu': '13:44', 'arr_honbu': '13:45', 'line': '空17'},
+    {'dep_station': '千歳駅', 'dep_time': '14:24', 'arr_kenkyu': '14:42', 'arr_honbu': '14:45', 'line': '直17'},
+    {'dep_station': '千歳駅', 'dep_time': '14:50', 'arr_kenkyu': '15:14', 'arr_honbu': '15:15', 'line': '空17'},
+    {'dep_station': '南千歳駅', 'dep_time': '15:01', 'arr_kenkyu': '15:14', 'arr_honbu': '15:15', 'line': '空17'},
+    {'dep_station': '千歳駅', 'dep_time': '15:18', 'arr_kenkyu': '15:42', 'arr_honbu': '15:43', 'line': '空17'},
+    {'dep_station': '南千歳駅', 'dep_time': '15:29', 'arr_kenkyu': '15:42', 'arr_honbu': '15:43', 'line': '空17'},
+    {'dep_station': '千歳駅', 'dep_time': '16:00', 'arr_kenkyu': '16:24', 'arr_honbu': '16:25', 'line': '空17'},
+    {'dep_station': '南千歳駅', 'dep_time': '16:11', 'arr_kenkyu': '16:24', 'arr_honbu': '16:25', 'line': '空17'},
+    {'dep_station': '千歳駅', 'dep_time': '18:29', 'arr_kenkyu': '18:53', 'arr_honbu': '18:54', 'line': '空18'},
+    {'dep_station': '南千歳駅', 'dep_time': '18:40', 'arr_kenkyu': '18:53', 'arr_honbu': '18:54', 'line': '空18'},
+    {'dep_station': '千歳駅', 'dep_time': '19:29', 'arr_kenkyu': '19:53', 'arr_honbu': '19:54', 'line': '空18'},
+    {'dep_station': '南千歳駅', 'dep_time': '19:40', 'arr_kenkyu': '19:53', 'arr_honbu': '19:54', 'line': '空18'}
 ]
 
 BUS_GO_HOLIDAY = [
@@ -319,9 +409,27 @@ BUS_GO_HOLIDAY = [
     {'dep_station': '千歳駅', 'dep_time': '07:50', 'arr_kenkyu': '08:08', 'arr_honbu': '08:11', 'line': '直17'},
     {'dep_station': '千歳駅', 'dep_time': '08:24', 'arr_kenkyu': '08:42', 'arr_honbu': '08:45', 'line': '直17'},
     {'dep_station': '南千歳駅', 'dep_time': '08:30', 'arr_kenkyu': '08:38', 'arr_honbu': '08:41', 'line': '南17'},
-    {'dep_station': '千歳駅', 'dep_time': '09:50', 'arr_kenkyu': '10:14', 'arr_honbu': '10:15', 'line': '空17'}
+    {'dep_station': '千歳駅', 'dep_time': '09:50', 'arr_kenkyu': '10:14', 'arr_honbu': '10:15', 'line': '空17'},
+    {'dep_station': '南千歳駅', 'dep_time': '10:01', 'arr_kenkyu': '10:14', 'arr_honbu': '10:15', 'line': '空17'},
+    {'dep_station': '千歳駅', 'dep_time': '10:45', 'arr_kenkyu': '11:09', 'arr_honbu': '11:10', 'line': '空17'},
+    {'dep_station': '南千歳駅', 'dep_time': '10:56', 'arr_kenkyu': '11:09', 'arr_honbu': '11:10', 'line': '空17'},
+    {'dep_station': '千歳駅', 'dep_time': '11:29', 'arr_kenkyu': '11:53', 'arr_honbu': '11:54', 'line': '空18'},
+    {'dep_station': '南千歳駅', 'dep_time': '11:40', 'arr_kenkyu': '11:53', 'arr_honbu': '11:54', 'line': '空18'},
+    {'dep_station': '千歳駅', 'dep_time': '12:40', 'arr_kenkyu': '13:04', 'arr_honbu': '13:05', 'line': '空17'},
+    {'dep_station': '南千歳駅', 'dep_time': '12:51', 'arr_kenkyu': '13:04', 'arr_honbu': '13:05', 'line': '空17'},
+    {'dep_station': '千歳駅', 'dep_time': '13:40', 'arr_kenkyu': '14:04', 'arr_honbu': '14:05', 'line': '空17'},
+    {'dep_station': '南千歳駅', 'dep_time': '13:51', 'arr_kenkyu': '14:04', 'arr_honbu': '14:05', 'line': '空17'},
+    {'dep_station': '千歳駅', 'dep_time': '16:00', 'arr_kenkyu': '16:24', 'arr_honbu': '16:25', 'line': '空17'},
+    {'dep_station': '南千歳駅', 'dep_time': '16:11', 'arr_kenkyu': '16:24', 'arr_honbu': '16:25', 'line': '空17'},
+    {'dep_station': '千歳駅', 'dep_time': '17:30', 'arr_kenkyu': '17:54', 'arr_honbu': '17:55', 'line': '空17'},
+    {'dep_station': '南千歳駅', 'dep_time': '17:41', 'arr_kenkyu': '17:54', 'arr_honbu': '17:55', 'line': '空17'},
+    {'dep_station': '千歳駅', 'dep_time': '18:29', 'arr_kenkyu': '18:53', 'arr_honbu': '18:54', 'line': '空18'},
+    {'dep_station': '南千歳駅', 'dep_time': '18:40', 'arr_kenkyu': '18:53', 'arr_honbu': '18:54', 'line': '空18'},
+    {'dep_station': '千歳駅', 'dep_time': '19:29', 'arr_kenkyu': '19:53', 'arr_honbu': '19:54', 'line': '空18'},
+    {'dep_station': '南千歳駅', 'dep_time': '19:40', 'arr_kenkyu': '19:53', 'arr_honbu': '19:54', 'line': '空18'}
 ]
 
+# --- 復路バス（下校用：全便網羅） ---
 BUS_BACK_HEIJITSU = [
     {'line': '空17', 'dep_honbu': '08:22', 'dep_kenkyu': '08:25', 'bus_arr_sta': '千歳駅', 'bus_arr_time': '08:48', 'drop_detail': '千歳駅前（降車）'},
     {'line': '空17', 'dep_honbu': '08:22', 'dep_kenkyu': '08:25', 'bus_arr_sta': '南千歳駅', 'bus_arr_time': '08:37', 'drop_detail': '南千歳駅（降車）'},
@@ -386,41 +494,6 @@ BUS_BACK_HEIJITSU = [
     {'line': '空18', 'dep_honbu': '21:52', 'dep_kenkyu': '21:55', 'bus_arr_sta': '南千歳駅', 'bus_arr_time': '22:07', 'drop_detail': '南千歳駅（降車）'},
     {'line': '空18', 'dep_honbu': '22:32', 'dep_kenkyu': '22:35', 'bus_arr_sta': '千歳駅', 'bus_arr_time': '23:00', 'drop_detail': '千歳駅前（降車）'},
     {'line': '空18', 'dep_honbu': '22:32', 'dep_kenkyu': '22:35', 'bus_arr_sta': '南千歳駅', 'bus_arr_time': '22:47', 'drop_detail': '南千歳駅（降車）'},
-    {'line': '空18', 'dep_honbu': '23:32', 'dep_kenkyu': '23:35', 'bus_arr_sta': '千歳駅', 'bus_arr_time': '24:00', 'drop_detail': '千歳駅前（降車）'},
-    {'line': '空18', 'dep_honbu': '23:32', 'dep_kenkyu': '23:35', 'bus_arr_sta': '南千歳駅', 'bus_arr_time': '23:47', 'drop_detail': '南千歳駅（降車）'}
-]
-
-BUS_BACK_HOLIDAY = [
-    {'line': '空17', 'dep_honbu': '08:22', 'dep_kenkyu': '08:25', 'bus_arr_sta': '千歳駅', 'bus_arr_time': '08:48', 'drop_detail': '千歳駅前（降車）'},
-    {'line': '空17', 'dep_honbu': '08:22', 'dep_kenkyu': '08:25', 'bus_arr_sta': '南千歳駅', 'bus_arr_time': '08:37', 'drop_detail': '南千歳駅（降車）'},
-    {'line': '空17', 'dep_honbu': '09:02', 'dep_kenkyu': '09:05', 'bus_arr_sta': '千歳駅', 'bus_arr_time': '09:28', 'drop_detail': '千歳駅前（降車）'},
-    {'line': '空17', 'dep_honbu': '09:02', 'dep_kenkyu': '09:05', 'bus_arr_sta': '南千歳駅', 'bus_arr_time': '09:17', 'drop_detail': '南千歳駅（降車）'},
-    {'line': '空17', 'dep_honbu': '09:32', 'dep_kenkyu': '09:35', 'bus_arr_sta': '千歳駅', 'bus_arr_time': '09:58', 'drop_detail': '千歳駅前（降車）'},
-    {'line': '空17', 'dep_honbu': '09:32', 'dep_kenkyu': '09:35', 'bus_arr_sta': '南千歳駅', 'bus_arr_time': '09:47', 'drop_detail': '南千歳駅（降車）'},
-    {'line': '空17', 'dep_honbu': '10:42', 'dep_kenkyu': '10:45', 'bus_arr_sta': '千歳駅', 'bus_arr_time': '11:08', 'drop_detail': '千歳駅前（降車）'},
-    {'line': '空17', 'dep_honbu': '10:42', 'dep_kenkyu': '10:45', 'bus_arr_sta': '南千歳駅', 'bus_arr_time': '10:57', 'drop_detail': '南千歳駅（降車）'},
-    {'line': '空17', 'dep_honbu': '11:36', 'dep_kenkyu': '11:39', 'bus_arr_sta': '千歳駅', 'bus_arr_time': '12:02', 'drop_detail': '千歳駅前（降車）'},
-    {'line': '空17', 'dep_honbu': '11:36', 'dep_kenkyu': '11:39', 'bus_arr_sta': '南千歳駅', 'bus_arr_time': '11:51', 'drop_detail': '南千歳駅（降車）'},
-    {'line': '空18', 'dep_honbu': '12:22', 'dep_kenkyu': '12:25', 'bus_arr_sta': '千歳駅', 'bus_arr_time': '12:50', 'drop_detail': '千歳駅前（降車）'},
-    {'line': '空18', 'dep_honbu': '12:22', 'dep_kenkyu': '12:25', 'bus_arr_sta': '南千歳駅', 'bus_arr_time': '12:37', 'drop_detail': '南千歳駅（降車）'},
-    {'line': '空17', 'dep_honbu': '13:35', 'dep_kenkyu': '13:38', 'bus_arr_sta': '千歳駅', 'bus_arr_time': '14:01', 'drop_detail': '千歳駅前（降車）'},
-    {'line': '空17', 'dep_honbu': '13:35', 'dep_kenkyu': '13:38', 'bus_arr_sta': '南千歳駅', 'bus_arr_time': '13:50', 'drop_detail': '南千歳駅（降車）'},
-    {'line': '空17', 'dep_honbu': '14:32', 'dep_kenkyu': '14:35', 'bus_arr_sta': '千歳駅', 'bus_arr_time': '14:58', 'drop_detail': '千歳駅前（降車）'},
-    {'line': '空17', 'dep_honbu': '14:32', 'dep_kenkyu': '14:35', 'bus_arr_sta': '南千歳駅', 'bus_arr_time': '14:47', 'drop_detail': '南千歳駅（降車）'},
-    {'line': '空18', 'dep_honbu': '15:12', 'dep_kenkyu': '15:15', 'bus_arr_sta': '千歳駅', 'bus_arr_time': '15:40', 'drop_detail': '千歳駅前（降車）'},
-    {'line': '空18', 'dep_honbu': '15:12', 'dep_kenkyu': '15:15', 'bus_arr_sta': '南千歳駅', 'bus_arr_time': '15:27', 'drop_detail': '南千歳駅（降車）'},
-    {'line': '空17', 'dep_honbu': '16:47', 'dep_kenkyu': '16:50', 'bus_arr_sta': '千歳駅', 'bus_arr_time': '17:13', 'drop_detail': '千歳駅前（降車）'},
-    {'line': '空17', 'dep_honbu': '16:47', 'dep_kenkyu': '16:50', 'bus_arr_sta': '南千歳駅', 'bus_arr_time': '17:02', 'drop_detail': '南千歳駅（降車）'},
-    {'line': '空18', 'dep_honbu': '18:07', 'dep_kenkyu': '18:10', 'bus_arr_sta': '千歳駅', 'bus_arr_time': '18:35', 'drop_detail': '千歳駅前（降車）'},
-    {'line': '空18', 'dep_honbu': '18:07', 'dep_kenkyu': '18:10', 'bus_arr_sta': '南千歳駅', 'bus_arr_time': '18:22', 'drop_detail': '南千歳駅（降車）'},
-    {'line': '空18', 'dep_honbu': '18:42', 'dep_kenkyu': '18:45', 'bus_arr_sta': '千歳駅', 'bus_arr_time': '19:10', 'drop_detail': '千歳駅前（降車）'},
-    {'line': '空18', 'dep_honbu': '18:42', 'dep_kenkyu': '18:45', 'bus_arr_sta': '南千歳駅', 'bus_arr_time': '18:57', 'drop_detail': '南千歳駅（降車）'},
-    {'line': '空18', 'dep_honbu': '19:17', 'dep_kenkyu': '19:20', 'bus_arr_sta': '千歳駅', 'bus_arr_time': '19:45', 'drop_detail': '千歳駅前（降車）'},
-    {'line': '空18', 'dep_honbu': '19:17', 'dep_kenkyu': '19:20', 'bus_arr_sta': '南千歳駅', 'bus_arr_time': '19:32', 'drop_detail': '南千歳駅（降車）'},
-    {'line': '空18', 'dep_honbu': '20:22', 'dep_kenkyu': '20:25', 'bus_arr_sta': '千歳駅', 'bus_arr_time': '20:50', 'drop_detail': '千歳駅前（降車）'},
-    {'line': '空18', 'dep_honbu': '20:22', 'dep_kenkyu': '20:25', 'bus_arr_sta': '南千歳駅', 'bus_arr_time': '20:37', 'drop_detail': '南千歳駅（降車）'},
-    {'line': '空18', 'dep_honbu': '21:22', 'dep_kenkyu': '21:25', 'bus_arr_sta': '千歳駅', 'bus_arr_time': '21:50', 'drop_detail': '千歳駅前（降車）'},
-    {'line': '空18', 'dep_honbu': '21:22', 'dep_kenkyu': '21:25', 'bus_arr_sta': '南千歳駅', 'bus_arr_time': '21:37', 'drop_detail': '南千歳駅（降車）'},
     {'line': '空18', 'dep_honbu': '23:32', 'dep_kenkyu': '23:35', 'bus_arr_sta': '千歳駅', 'bus_arr_time': '24:00', 'drop_detail': '千歳駅前（降車）'},
     {'line': '空18', 'dep_honbu': '23:32', 'dep_kenkyu': '23:35', 'bus_arr_sta': '南千歳駅', 'bus_arr_time': '23:47', 'drop_detail': '南千歳駅（降車）'}
 ]
