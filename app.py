@@ -1,21 +1,29 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 st.set_page_config(page_title="千歳科技大 通学ナビ", layout="wide")
 
 # ==========================================
-# 1. UIスタイル定義（イラスト排除・大きなボタンUI）
+# 1. UIスタイル定義（上部余白カット・大きなタッチUI）
 # ==========================================
 st.markdown("""
 <style>
-    /* 緑色の案内カード（最上部に表示） */
+    /* 画面上部の無駄な余白を完全に削り、緑カードを最上部に直出し */
+    .block-container {
+        padding-top: 0.8rem !important;
+        padding-bottom: 2rem !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+    
+    /* 緑色の案内カード */
     .hero-card {
         background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);
         color: white;
         border-radius: 14px;
-        padding: 20px;
-        margin: 10px 0 20px 0;
+        padding: 18px;
+        margin: 0 0 16px 0;
         box-shadow: 0 6px 18px rgba(0,0,0,0.12);
         border: 1px solid rgba(255,255,255,0.2);
     }
@@ -25,12 +33,12 @@ st.markdown("""
         color: #a7f3d0;
         font-size: 13px;
         font-weight: 700;
-        padding: 4px 10px;
+        padding: 3px 8px;
         border-radius: 6px;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
     }
     .hero-time-val {
-        font-size: 46px;
+        font-size: 44px;
         font-weight: 900;
         line-height: 1;
         letter-spacing: -1px;
@@ -38,15 +46,15 @@ st.markdown("""
     .transit-step-container {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
+        gap: 6px;
         align-items: center;
-        margin-top: 14px;
+        margin-top: 12px;
     }
     .step-card {
         background: rgba(255, 255, 255, 0.12);
         border: 1px solid rgba(255, 255, 255, 0.25);
         border-radius: 8px;
-        padding: 8px 12px;
+        padding: 6px 10px;
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -68,33 +76,33 @@ st.markdown("""
     }
     .step-arrow {
         color: #a7f3d0;
-        font-size: 16px;
+        font-size: 15px;
         font-weight: 900;
     }
 
-    /* 設定エリアの大型ボタンスタイル（スマホ向け最適化） */
+    /* 設定エリアの大型ボタンスタイル */
     .filter-box {
         background-color: #f8fafc;
         border: 1px solid #cbd5e1;
         border-radius: 12px;
-        padding: 16px;
-        margin-top: 12px;
+        padding: 14px;
+        margin-top: 6px;
         margin-bottom: 16px;
     }
     div[data-testid="stRadio"] div[role="radiogroup"] {
-        gap: 8px;
+        gap: 6px;
         display: flex;
         flex-wrap: wrap;
     }
     div[data-testid="stRadio"] div[role="radiogroup"] > label {
-        font-size: 15px !important;
+        font-size: 14px !important;
         font-weight: 600 !important;
-        padding: 8px 14px !important;
+        padding: 8px 12px !important;
         background-color: #ffffff;
         border: 2px solid #cbd5e1;
         border-radius: 8px;
         cursor: pointer;
-        min-height: 44px;
+        min-height: 42px;
         display: inline-flex;
         align-items: center;
     }
@@ -103,15 +111,16 @@ st.markdown("""
         color: #ffffff !important;
         border-color: #047857 !important;
     }
-    input[type="time"] {
-        font-size: 18px !important;
-        height: 44px !important;
+    div[data-testid="stSelectbox"] select, div[data-testid="stSelectbox"] div[data-baseweb="select"] {
+        font-size: 17px !important;
+        font-weight: 700 !important;
+        min-height: 44px !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. JRデータ定義（関数の前に確実に配置）
+# 2. JRデータ定義
 # ==========================================
 JR_NAEBO_SAPPORO = [
     "06:19", "06:36", "06:42", "06:59", "07:04", "07:13", "07:26", "07:34", 
@@ -620,7 +629,7 @@ def calculate_back_routes(bus_data, dep_building, walk_time):
 # ==========================================
 # 7. サイドバー設定（行き帰り・徒歩時間）
 # ==========================================
-st.sidebar.header("通学方向・基本設定")
+st.sidebar.markdown("### 通学設定")
 direction = st.sidebar.radio(
     "移動方向",
     ["登校（自宅 ➜ 大学）", "下校（大学 ➜ 自宅）"],
@@ -630,37 +639,57 @@ walk_time = st.sidebar.slider("苗穂駅〜自宅 徒歩時間（分）", min_va
 is_holiday = st.sidebar.checkbox("土日祝ダイヤを使用", value=False)
 
 # ==========================================
-# 8. メイン画面：最上部に結果カード領域を確保
+# 8. 日本時間の現在時刻を取得（クラウド上のズレを解消）
 # ==========================================
-st.title("千歳科技大 通学ナビ")
+jst = timezone(timedelta(hours=9))
+now_jst = datetime.now(jst)
+now_h_str = f"{now_jst.hour:02d}"
+now_m_val = (now_jst.minute // 5) * 5
+now_m_str = f"{now_m_val:02d}"
 
-# 【重要】スマホを開いた瞬間に緑色の案内カードが出るよう最上部にコンテナを配置
+# ==========================================
+# 9. 最上部コンテナ（緑色カードを即時表示）
+# ==========================================
 hero_container = st.container()
 
 # ==========================================
-# 9. メイン画面：条件設定エリア（大きなボタン）
+# 10. メイン設定エリア（ダイヤル式 / 手入力の切替）
 # ==========================================
 st.markdown('<div class="filter-box">', unsafe_allow_html=True)
 
-# 検索モード
+# 検索モード（デフォルト：現在時刻から最速）
 search_mode = st.radio(
     "検索モード",
     ["現在時刻から最速（今すぐ出発）", "希望到着時刻から逆算（ギリギリ出発）"],
+    index=0,
     horizontal=True
 )
 
-c1, c2 = st.columns([1.2, 1.2])
-with c1:
-    now_str = datetime.now().strftime("%H:%M")
-    if "現在時刻" in search_mode:
-        base_time_val = st.time_input("出発基準時刻", datetime.strptime(now_str, "%H:%M").time())
-    else:
-        def_t = "08:50" if "登校" in direction else "19:00"
-        base_time_val = st.time_input("希望到着時刻", datetime.strptime(def_t, "%H:%M").time())
+time_input_method = st.radio("時刻の指定方法", ["ダイヤル式（5分刻み）", "直接打ち込み（手入力）"], horizontal=True)
 
-with c2:
-    b_label = "大学の棟（目的地）" if "登校" in direction else "大学の棟（出発地）"
-    target_building = st.radio(b_label, ["研究棟", "本部棟"], horizontal=True)
+hours_list = [f"{h:02d}" for h in range(0, 24)]
+minutes_list = [f"{m:02d}" for m in range(0, 60, 5)]
+
+if time_input_method == "ダイヤル式（5分刻み）":
+    # 5分刻みのドラムロール型ピッカー
+    tc1, tc2 = st.columns(2)
+    default_h_idx = hours_list.index(now_h_str) if now_h_str in hours_list else 8
+    default_m_idx = minutes_list.index(now_m_str) if now_m_str in minutes_list else 0
+    
+    with tc1:
+        sel_h = st.selectbox("時（時間）", hours_list, index=default_h_idx)
+    with tc2:
+        sel_m = st.selectbox("分（5分刻み）", minutes_list, index=default_m_idx)
+    base_time_str = f"{sel_h}:{sel_m}"
+else:
+    # 従来のキーボード直接入力
+    def_time_obj = datetime.strptime(f"{now_h_str}:{now_m_str}", "%H:%M").time()
+    typed_time = st.time_input("指定時刻", def_time_obj)
+    base_time_str = typed_time.strftime("%H:%M")
+
+# 大学の棟選択
+b_label = "大学の棟（目的地）" if "登校" in direction else "大学の棟（出発地）"
+target_building = st.radio(b_label, ["研究棟", "本部棟"], horizontal=True)
 
 # 経由地フィルター
 f1, f2 = st.columns([1.5, 1.2])
@@ -679,10 +708,10 @@ with f2:
 
 st.markdown('</div>', unsafe_allow_html=True)
 
-base_m = t2m(base_time_val.strftime("%H:%M"))
+base_m = t2m(base_time_str)
 
 # ==========================================
-# 10. ルート計算と最上部カード・全便一覧の描画
+# 11. ルート計算と画面描画
 # ==========================================
 if "登校" in direction:
     bus_data = BUS_GO_HOLIDAY if is_holiday else BUS_GO_HEIJITSU
@@ -712,7 +741,7 @@ if "登校" in direction:
                     by=["univ_arr_m", "home_dep_m", "pref_sapporo", "pref_mchitose"],
                     ascending=[True, False, False, False]
                 ).iloc[0]
-                status_header = f"{base_time_val.strftime('%H:%M')} 以降の出発で一番早く着く便"
+                status_header = f"{base_time_str} 以降の出発で一番早く着く便"
         else:
             cands = filtered_df[filtered_df["univ_arr_m"] <= base_m]
             if not cands.empty:
@@ -720,9 +749,9 @@ if "登校" in direction:
                     by=["home_dep_m", "pref_sapporo", "pref_mchitose", "univ_arr_m"],
                     ascending=[False, False, False, True]
                 ).iloc[0]
-                status_header = f"{base_time_val.strftime('%H:%M')} までに着く一番ギリギリの出発便"
+                status_header = f"{base_time_str} までに着く一番ギリギリの出発便"
 
-    # 画面最上部に緑色カードを描画
+    # 画面最上部に緑色カードを表示
     with hero_container:
         if best is not None:
             total_min = best['univ_arr_m'] - best['home_dep_m']
@@ -799,7 +828,7 @@ else:
                     by=["home_arr_m", "univ_dep_m", "pref_chitose", "avoid_sapporo"],
                     ascending=[True, False, False, False]
                 ).iloc[0]
-                status_header = f"{base_time_val.strftime('%H:%M')} 以降の出発で一番早く帰れる便"
+                status_header = f"{base_time_str} 以降の出発で一番早く帰れる便"
         else:
             cands = filtered_df[filtered_df["home_arr_m"] <= base_m]
             if not cands.empty:
@@ -807,9 +836,9 @@ else:
                     by=["univ_dep_m", "pref_chitose", "avoid_sapporo", "home_arr_m"],
                     ascending=[False, False, False, True]
                 ).iloc[0]
-                status_header = f"{base_time_val.strftime('%H:%M')} までに帰宅できる一番ギリギリの出発便"
+                status_header = f"{base_time_str} までに帰宅できる一番ギリギリの出発便"
 
-    # 画面最上部に緑色カードを描画
+    # 画面最上部に緑色カードを表示
     with hero_container:
         if best is not None:
             total_min = best['home_arr_m'] - best['univ_dep_m']
